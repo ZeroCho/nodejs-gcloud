@@ -9,8 +9,9 @@ RUN apt-get update
 
 RUN apt-get install -y python2.7 python-pip
 RUN npm install -g npm
-# Google Cloud SDK installation
+RUN export CLOUDSDK_PYTHON=$(which python)
 
+# Google Cloud SDK installation
 RUN curl ${GCLOUD_DOWNLOAD_URL} > /tmp/gcloud.tar.gz
 RUN tar xzf /tmp/gcloud.tar.gz --directory /opt
 RUN rm /tmp/gcloud.tar.gz
