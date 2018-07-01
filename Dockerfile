@@ -1,7 +1,42 @@
-FROM google/cloud-sdk:latest
-MAINTAINER EasyMetrics <joshuaw@easymetrics.com>
+FROM debian:jessie
+
+MAINTAINER ZeroCho <zerohch0@gmail.com>
 
 USER root
+
+# Install and Configure Google Cloud SDK
+# ...
+
+ENV CLOUD_SDK_VERSION 207.0.0
+
+RUN apt-get -qqy update && apt-get -qqy upgrade && apt-get install -qqy \
+        curl \
+        gcc \
+        python-dev \
+        python-setuptools \
+        apt-transport-https \
+        lsb-release \
+        openssh-client \
+        git \
+    && easy_install -U pip && \
+    pip install -U crcmod   && \
+    export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" && \
+    echo "deb https://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" > /etc/apt/sources.list.d/google-cloud-sdk.list && \
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
+    apt-get update && \
+    apt-get install -y google-cloud-sdk=${CLOUD_SDK_VERSION}-0 \
+        google-cloud-sdk-app-engine-python \
+        google-cloud-sdk-app-engine-java \
+        google-cloud-sdk-app-engine-go \
+        google-cloud-sdk-datalab \
+        google-cloud-sdk-datastore-emulator \
+        google-cloud-sdk-pubsub-emulator \
+        google-cloud-sdk-bigtable-emulator \
+        google-cloud-sdk-cbt \
+        kubectl && \
+    gcloud config set core/disable_usage_reporting true && \
+    gcloud config set component_manager/disable_update_check true && \
+    gcloud config set metrics/environment github_docker_image
 
 # Install and Configure Docker Tooling
 # ...
@@ -33,19 +68,12 @@ RUN JQ_URL=$(curl --location --fail --retry 3 https://api.github.com/repos/stedo
 
 # Install Docker
 
-# Docker.com returns the URL of the latest binary when you hit a directory listing
+# https://download.docker.com/linux/static/stable/x86_64/ returns the URL of the latest binary when you hit the directory
 # We curl this URL and `grep` the version out.
-# The output looks like this:
-
-#>    # To install, run the following commands as root:
-#>    curl -fsSLO https://get.docker.com/builds/Linux/x86_64/docker-17.05.0-ce.tgz && tar --strip-components=1 -xvzf docker-17.05.0-ce.tgz -C /usr/local/bin
-#>
-#>    # Then start docker in daemon mode:
-#>    /usr/local/bin/dockerd
 
 RUN set -ex \
-  && export DOCKER_VERSION=$(curl --silent --fail --retry 3 https://get.docker.com/builds/  | grep -P -o 'docker-\d+\.\d+\.\d+-ce\.tgz' | head -n 1) \
-  && DOCKER_URL="https://get.docker.com/builds/Linux/x86_64/${DOCKER_VERSION}" \
+  && export DOCKER_VERSION=$(curl --silent --fail --retry 3 https://download.docker.com/linux/static/stable/x86_64/  | grep -P -o 'docker-\d+\.\d+\.\d+-ce\.tgz' | head -n 1) \
+  && DOCKER_URL="https://download.docker.com/linux/static/stable/x86_64/${DOCKER_VERSION}" \
   && echo Docker URL: $DOCKER_URL \
   && curl --silent --show-error --location --fail --retry 3 --output /tmp/docker.tgz "${DOCKER_URL}" \
   && ls -lha /tmp/docker.tgz \
@@ -75,7 +103,7 @@ USER circleci
 # ...
 ENV NPM_CONFIG_LOGLEVEL info
 ENV NODE_VERSION 8.11.3
-ENV NPM_VERSION=6
+#ENV NPM_VERSION=5
 
 USER root
 
@@ -100,7 +128,7 @@ USER circleci
 ENV NVM_DIR /usr/local/nvm
 
 # Install nvm with node and npm
-RUN curl https://raw.githubusercontent.com/creationix/nvm/v0.33.2/install.sh | bash \
+RUN curl https://raw.githubusercontent.com/creationix/nvm/v0.33.6/install.sh | bash \
     && source $NVM_DIR/nvm.sh \
     && nvm install $NODE_VERSION \
     && nvm alias default $NODE_VERSION \
@@ -109,5 +137,7 @@ RUN curl https://raw.githubusercontent.com/creationix/nvm/v0.33.2/install.sh | b
 # Set up our PATH correctly so we don't have to long-reference npm, node, &c.
 ENV NODE_PATH $NVM_DIR/v$NODE_VERSION/lib/node_modules
 ENV PATH      $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
+
+RUN npm i -g npm
 
 CMD [ "node" ]
