@@ -1,4 +1,4 @@
-FROM debian:jessie
+FROM ubuntu:18.04
 
 MAINTAINER ZeroCho <zerohch0@gmail.com>
 
@@ -7,19 +7,21 @@ USER root
 # Install and Configure Google Cloud SDK
 # ...
 
-ENV CLOUD_SDK_VERSION 207.0.0
+ENV CLOUD_SDK_VERSION 247.0.0
 
 RUN apt-get -qqy update && apt-get -qqy upgrade && apt-get install -qqy \
         curl \
         gcc \
+        openjdk-8-jdk \
         python-dev \
         python-setuptools \
+        python-pip \
         apt-transport-https \
         lsb-release \
         openssh-client \
-        git \
-    && easy_install -U pip && \
-    pip install -U crcmod   && \
+        git
+
+RUN pip install -U crcmod   && \
     export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" && \
     echo "deb https://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" > /etc/apt/sources.list.d/google-cloud-sdk.list && \
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
@@ -102,7 +104,7 @@ USER circleci
 # Setup NVM Install Environment
 # ...
 ENV NPM_CONFIG_LOGLEVEL info
-ENV NODE_VERSION 8.11.3
+ENV NODE_VERSION 12.13.1
 #ENV NPM_VERSION=5
 
 USER root
